@@ -1,14 +1,54 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import '../../constants.dart';
-
 import '../../models/product.dart';
 import '../details/details_screen.dart';
 import 'components/categorries.dart';
 import 'components/item_card.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  // 1. Khai báo Controller để quản lý ô Input
+  final TextEditingController _searchController = TextEditingController();
+
+  // 2. Danh sách lưu kết quả lọc
+  List<Product> _filteredProducts = [];
+
+  @override
+  void initState() {
+    super.initState();
+    // Khởi tạo danh sách ban đầu bằng toàn bộ products
+    _filteredProducts = products;
+  }
+
+  @override
+  void dispose() {
+    // Luôn giải phóng controller khi thoát màn hình để tránh leak memory
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  // 3. Hàm xử lý logic khi gõ text
+  void _onSearchChanged(String query) {
+    setState(() {
+      if (query.isEmpty) {
+        _filteredProducts = products;
+      } else {
+        _filteredProducts = products
+            .where((p) => p.title.toLowerCase().contains(query.toLowerCase()))
+            .toList();
+      }
+    });
+    print('Giá trị ô input: ${query}');
+    print('Danh sách sản phẩm: ${_filteredProducts.length}');
+
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +58,7 @@ class HomeScreen extends StatelessWidget {
         elevation: 0,
         leading: IconButton(
           icon: SvgPicture.asset("assets/icons/back.svg"),
-          onPressed: () {},
+          onPressed: () => Navigator.pop(context),
         ),
         actions: <Widget>[
           IconButton(
@@ -52,24 +92,65 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
           const Categories(),
+
+          // ====== KHU VỰC BẮT SỰ KIỆN INPUT ======
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: kDefaultPaddin,
+              vertical: 10,
+            ),
+            child: TextField(
+              controller: _searchController, // Gán controller
+              onChanged: _onSearchChanged,   // Gọi hàm mỗi khi người dùng gõ 1 ký tự
+              onSubmitted: (value) {         // Gọi khi người dùng ấn nút Enter / Xong trên bàn phím
+                debugPrint('Người dùng bấm Enter với từ khóa: $value');
+              },
+              decoration: InputDecoration(
+                hintText: "Tìm kiếm sản phẩm...",
+                prefixIcon: const Icon(Icons.search),
+                // Thêm nút X để xóa nhanh nội dung khi có chữ
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    _searchController.clear();
+                    _onSearchChanged('');
+                  },
+                )
+                    : null,
+                filled: true,
+                fillColor: Colors.grey.shade100,
+                contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ),
+          // =======================================
+
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: kDefaultPaddin),
-              child: GridView.builder(
-                itemCount: products.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              child: _filteredProducts.isEmpty
+                  ? const Center(child: Text("Không tìm thấy sản phẩm nào"))
+                  : GridView.builder(
+                itemCount: _filteredProducts.length,
+                gridDelegate:
+                const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   mainAxisSpacing: kDefaultPaddin,
                   crossAxisSpacing: kDefaultPaddin,
                   childAspectRatio: 0.75,
                 ),
                 itemBuilder: (context, index) => ItemCard(
-                  product: products[index],
+                  product: _filteredProducts[index],
                   press: () => Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => DetailsScreen(
-                        product: products[index],
+                        product: _filteredProducts[index],
                       ),
                     ),
                   ),

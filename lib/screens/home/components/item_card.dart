@@ -15,6 +15,7 @@ class ItemCard extends StatelessWidget {
       onTap: press,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+
         children: <Widget>[
           Expanded(
             child: Container(
